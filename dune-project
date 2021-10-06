@@ -10,7 +10,7 @@
 (homepage "https://github.com/thierry-martinez/pattern")
 (bug_reports "https://github.com/thierry-martinez/pattern")
 (documentation "https://github.com/thierry-martinez/pattern")
-(version "0.3.0")
+(version "0.3.1")
 
 (package
  (name pattern)

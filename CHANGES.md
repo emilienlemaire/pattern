@@ -1,3 +1,7 @@
+# v0.3.1, 2021-10-06
+
+- Add missing `(kind ppx_rewriter)` in dune
+
 # v0.3.0, 2020-09-22
 
 - Port to `ppxlib` 0.16 / `ocaml-migrate-parsetree` 2.0.0
