@@ -1,3 +1,7 @@
+# v0.3.2, 2022-06-10
+
+- Fix compatibility with ppxlib 0.26
+
 # v0.3.1, 2021-10-06
 
 - Add missing `(kind ppx_rewriter)` in dune

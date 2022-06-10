@@ -281,15 +281,41 @@ let rec make_matcher' make_matcher (pat : Ppxlib.pattern)
          | [%p type_constr (Ppxlib.Ast_helper.Pat.construct ctor None)] -> Ok ()
          | _ ->
              [%e mismatch_here ~loc pat]]
-  | { ppat_desc = Ppat_construct (ctor, Some [%pat? _]); _ } ->
+  | { ppat_desc = Ppat_construct (ctor, Some arg); _ } ->
+      make_matcher_construct_with_arg make_matcher pat type_constr ctor arg
+  | { ppat_desc = Ppat_tuple args; _ } ->
+      multiple_match_tuple ~loc make_matcher args
+        (fun sub_pats k : (string list * Ppxlib.expression) ->
+          let binders, result = k () in
+          binders, [%expr
+           match __value__ with [%p type_constr sub_pats] -> [%e result]])
+        Fun.id Fun.id
+  | { ppat_desc = Ppat_record (fields, closed_flag); _ } ->
+      multiple_match_record ~loc make_matcher fields closed_flag
+        (fun sub_pats k : (string list * Ppxlib.expression) ->
+          let binders, result = k () in
+          binders, [%expr match __value__ with [%p type_constr sub_pats] ->
+            [%e result]])
+        Fun.id Fun.id
+  | _ ->
+      Location.raise_errorf ~loc "unimplemented: %a" Ppxlib.Pprintast.pattern pat
+
+and make_matcher_construct_with_arg make_matcher (pat : Ppxlib.pattern)
+    (type_constr : Ppxlib.pattern -> Ppxlib.pattern)
+    (ctor : Ppxlib.longident_loc)
+    (arg : Metapp.Pat.Construct.Arg.t)
+      : string list * Ppxlib.expression =
+  let loc = pat.ppat_loc in
+  match snd (Metapp.Pat.Construct.Arg.destruct arg) with
+  | [%pat? _] ->
       [], [%expr
          match __value__ with
-         | [%p type_constr (Ppxlib.Ast_helper.Pat.construct ctor (Some [%pat? _]))] ->
+         | [%p type_constr
+               (Ppxlib.Ast_helper.Pat.construct ctor (Some [%pat? _]))] ->
              Ok ()
          | _ ->
              [%e mismatch_here ~loc pat]]
-  | { ppat_desc = Ppat_construct (ctor, Some
-        { ppat_desc = Ppat_tuple args; _ }); _ } ->
+  | { ppat_desc = Ppat_tuple args; _ } ->
       begin match
         match ctor, args with
         | { txt = Lident "::"; _ }, [hd; tl] ->
@@ -341,8 +367,7 @@ let rec make_matcher' make_matcher (pat : Ppxlib.pattern)
               | _ -> [%e none]])
             make_quoted_expr_list
       end
-  | { ppat_desc = Ppat_construct (ctor, Some
-        { ppat_desc = Ppat_record (fields, closed_flag); _ }); _ } ->
+  | { ppat_desc = Ppat_record (fields, closed_flag); _ } ->
       multiple_match_record ~loc make_matcher fields closed_flag
         (fun sub_pats k : (string list * Ppxlib.expression) ->
           let binders, result = k () in
@@ -356,27 +381,11 @@ let rec make_matcher' make_matcher (pat : Ppxlib.pattern)
         (fun quoteds ->
           [%pat? { pexp_desc = Pexp_construct (_ctor, Some [%p quoteds]); _}])
         (fun args -> build_pat_construct ctor [%expr (Some [%e args])])
-  | { ppat_desc = Ppat_construct (ctor, Some pat); _ } ->
+  | pat ->
       single_match ~loc make_matcher pat
         (type_constr (Ppxlib.Ast_helper.Pat.construct ctor (Some [%pat? sub])))
         ([%pat? { pexp_desc = Pexp_construct (_ctor, Some arg); _ }])
         (build_pat_construct ctor [%expr (Some error.common)])
-  | { ppat_desc = Ppat_tuple args; _ } ->
-      multiple_match_tuple ~loc make_matcher args
-        (fun sub_pats k : (string list * Ppxlib.expression) ->
-          let binders, result = k () in
-          binders, [%expr
-           match __value__ with [%p type_constr sub_pats] -> [%e result]])
-        Fun.id Fun.id
-  | { ppat_desc = Ppat_record (fields, closed_flag); _ } ->
-      multiple_match_record ~loc make_matcher fields closed_flag
-        (fun sub_pats k : (string list * Ppxlib.expression) ->
-          let binders, result = k () in
-          binders, [%expr match __value__ with [%p type_constr sub_pats] ->
-            [%e result]])
-        Fun.id Fun.id
-  | _ ->
-      Location.raise_errorf ~loc "unimplemented: %a" Ppxlib.Pprintast.pattern pat
 
 let rec make_matcher (pat : Ppxlib.pattern)
     : string list * Ppxlib.expression =
