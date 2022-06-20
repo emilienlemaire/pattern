@@ -3,7 +3,8 @@ let build_pat pat : Ppxlib.expression =
 
 let build_pat_construct ctor arg : Ppxlib.expression =
   build_pat [%expr Ppat_construct (
-    [%e Metaquot.Exp.loc Metaquot.Exp.longident ctor], [%e arg])]
+    [%e Metaquot.Exp.loc Metaquot.Exp.longident ctor],
+    [%e Metapp.Pat.Construct.construct [] arg])]
 
 let build_pat_tuple tuple : Ppxlib.expression =
   build_pat [%expr Ppat_tuple [%e Metapp.Exp.list tuple]]
