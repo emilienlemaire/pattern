@@ -1,4 +1,4 @@
-# v0.3.2, 2022-06-10
+# v0.3.2, 2022-11-17
 
 - Fix compatibility with ppxlib 0.26
 
